@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAISuggestions } from '../contexts/AISuggestionsContext';
+import { useLogger } from '../contexts/LogContext';
 
 type Language = 'javascript' | 'python';
 
@@ -20,6 +21,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCodeChange, applySuggestionRe
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [lineNumbers, setLineNumbers] = useState<number[]>([1]);
   const { analyzeCode } = useAISuggestions();
+  const logger = useLogger();
   
   // Debounce timer for AI analysis
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,30 +90,41 @@ print("Sum of 1-10:", sum(range(1, 11)))`
     }
   }, [selectedLanguage]);
 
-  // Update line numbers when code changes
+  // Initialize logging
   useEffect(() => {
-    const lines = code.split('\n');
-    setLineNumbers(Array.from({ length: lines.length }, (_, i) => i + 1));
-  }, [code]);
+    logger.info('Code Editor initialized', 'CodeEditor', { 
+      defaultLanguage: selectedLanguage 
+    });
+  }, []);
 
-  // Debounced AI analysis when code changes
+  // Log AI analysis
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      if (code.trim().length > 10) { // Only analyze if there's substantial code
+      if (code.trim().length > 10) {
+        logger.debug('Starting AI code analysis', 'CodeEditor', { 
+          codeLength: code.length,
+          language: selectedLanguage 
+        });
         analyzeCode(code, selectedLanguage);
       }
-    }, 2000); // 2 second delay
+    }, 10000);
 
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [code, selectedLanguage, analyzeCode]);
+  }, [code, selectedLanguage, analyzeCode, logger]);
+
+  // Update line numbers when code changes
+  useEffect(() => {
+    const lines = code.split('\n');
+    setLineNumbers(Array.from({ length: lines.length }, (_, i) => i + 1));
+  }, [code]);
 
   // Notify parent component of code changes
   useEffect(() => {
@@ -136,6 +149,7 @@ print("Sum of 1-10:", sum(range(1, 11)))`
   }, [applySuggestionRef, applySuggestionToCode]);
 
   const handleLanguageChange = (language: Language) => {
+    logger.info(`Language changed to ${language}`, 'CodeEditor');
     setSelectedLanguage(language);
     setCode(codeExamples[language]);
     setOutput('');
@@ -144,19 +158,32 @@ print("Sum of 1-10:", sum(range(1, 11)))`
   const runCode = async () => {
     setIsRunning(true);
     setOutput('Running...');
+    
+    logger.info(`Starting code execution`, 'CodeEditor', { language: selectedLanguage });
 
     try {
+      let result: string;
+      
       if (selectedLanguage === 'javascript') {
-        // Simulate JavaScript execution
-        const result = executeJavaScript(code);
+        logger.debug('Executing JavaScript code', 'CodeEditor');
+        result = executeJavaScript(code);
         setOutput(result);
+        logger.success('JavaScript code executed successfully', 'CodeEditor', { output: result });
       } else if (selectedLanguage === 'python') {
-        // Simulate Python execution
-        const result = executePython(code);
+        logger.debug('Executing Python code', 'CodeEditor');
+        result = executePython(code);
         setOutput(result);
+        logger.success('Python code executed successfully', 'CodeEditor', { output: result });
+      } else {
+        throw new Error(`Unsupported language: ${selectedLanguage}`);
       }
     } catch (error) {
-      setOutput(`Error: ${error}`);
+      const errorMessage = `Error: ${error}`;
+      setOutput(errorMessage);
+      logger.error('Code execution failed', 'CodeEditor', { 
+        error: errorMessage, 
+        language: selectedLanguage 
+      }, error instanceof Error ? error.stack : undefined);
     } finally {
       setIsRunning(false);
     }
@@ -273,10 +300,13 @@ print("Sum of 1-10:", sum(range(1, 11)))`
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      // Could add a toast notification here
-      console.log('Code copied to clipboard!');
+      logger.success('Code copied to clipboard', 'CodeEditor', { 
+        codeLength: code.length 
+      });
     } catch (err) {
-      console.error('Failed to copy code: ', err);
+      logger.error('Failed to copy code to clipboard', 'CodeEditor', { 
+        error: err instanceof Error ? err.message : String(err) 
+      });
     }
   };
 
@@ -356,7 +386,13 @@ print("Sum of 1-10:", sum(range(1, 11)))`
         
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => analyzeCode(code, selectedLanguage)}
+            onClick={() => {
+              logger.info('Manual AI analysis triggered', 'CodeEditor', { 
+                codeLength: code.length,
+                language: selectedLanguage 
+              });
+              analyzeCode(code, selectedLanguage);
+            }}
             disabled={code.trim().length < 10}
             className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors text-sm font-medium"
             title="Analyze code with AI"
@@ -378,13 +414,23 @@ print("Sum of 1-10:", sum(range(1, 11)))`
             {isRunning ? 'Running...' : '▶ Run Code'}
           </button>
           <button
-            onClick={() => setCode('')}
+            onClick={() => {
+              logger.warning('Code cleared by user', 'CodeEditor', { 
+                previousCodeLength: code.length 
+              });
+              setCode('');
+            }}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
           >
             🗑️ Clear
           </button>
           <button
-            onClick={() => setCode(codeExamples[selectedLanguage])}
+            onClick={() => {
+              logger.info('Example code loaded', 'CodeEditor', { 
+                language: selectedLanguage 
+              });
+              setCode(codeExamples[selectedLanguage]);
+            }}
             className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium"
             title="Load example code"
           >

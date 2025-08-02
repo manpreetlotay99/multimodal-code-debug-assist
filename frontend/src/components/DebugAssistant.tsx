@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import MainContent from './MainContent';
 import RightPanel from './RightPanel';
 import { AISuggestionsProvider } from '../contexts/AISuggestionsContext';
+import { LogProvider } from '../contexts/LogContext';
 
 const DebugAssistant: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('Code');
@@ -17,24 +18,26 @@ const DebugAssistant: React.FC = () => {
   };
 
   return (
-    <AISuggestionsProvider>
-      <div className="flex h-screen bg-gray-50">
-        <Header userName="Manpreet" />
-        <Sidebar 
-          activeSidebarItem={activeSidebarItem} 
-          setActiveSidebarItem={setActiveSidebarItem} 
-        />
-        
-        <div className="flex-1 ml-60 mt-16 flex">
-          <MainContent 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab}
-            applySuggestionRef={applySuggestionRef}
+    <LogProvider>
+      <AISuggestionsProvider>
+        <div className="flex h-screen bg-gray-50">
+          <Header userName="Manpreet" />
+          <Sidebar 
+            activeSidebarItem={activeSidebarItem} 
+            setActiveSidebarItem={setActiveSidebarItem} 
           />
-          <RightPanel onApplySuggestion={handleApplySuggestion} />
+          
+          <div className="flex-1 ml-60 mt-16 flex">
+            <MainContent 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab}
+              applySuggestionRef={applySuggestionRef}
+            />
+            <RightPanel onApplySuggestion={handleApplySuggestion} />
+          </div>
         </div>
-      </div>
-    </AISuggestionsProvider>
+      </AISuggestionsProvider>
+    </LogProvider>
   );
 };
 

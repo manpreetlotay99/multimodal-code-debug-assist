@@ -52,21 +52,80 @@ const RightPanel: React.FC<RightPanelProps> = ({ onApplySuggestion }) => {
     }
   };
 
+  const getLogLevelIcon = (level: LogLevel) => {
+    switch (level) {
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      case 'info': return 'ℹ️';
+      case 'debug': return '🐛';
+      case 'success': return '✅';
+      default: return '📝';
+    }
+  };
+
+  const getLogLevelColor = (level: LogLevel) => {
+    switch (level) {
+      case 'error': return 'text-red-600 bg-red-50';
+      case 'warning': return 'text-yellow-600 bg-yellow-50';
+      case 'info': return 'text-blue-600 bg-blue-50';
+      case 'debug': return 'text-purple-600 bg-purple-50';
+      case 'success': return 'text-green-600 bg-green-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const formatLogTime = (timestamp: Date) => {
+    return timestamp.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   return (
     <div className="w-80 border-l border-gray-200 bg-white">
       {/* Logs Section */}
       <div className="p-4 border-b border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-3">Logs</h3>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {logs.map((log, i) => (
-            <div
-              key={i}
-              className="text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded"
-            >
-              {log}
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900">Recent Logs</h3>
+          <span className="text-xs text-gray-500">
+            {logs.length} total
+          </span>
         </div>
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {recentLogs.length === 0 ? (
+            <div className="text-center text-gray-500 py-4">
+              <div className="text-2xl mb-1">📝</div>
+              <p className="text-xs">No logs yet</p>
+            </div>
+          ) : (
+            recentLogs.map((log) => (
+              <div
+                key={log.id}
+                className={`text-xs p-2 rounded border ${getLogLevelColor(log.level)} truncate`}
+                title={`${formatLogTime(log.timestamp)} - ${log.message}`}
+              >
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs">{getLogLevelIcon(log.level)}</span>
+                  <span className="text-xs font-mono text-gray-500">
+                    {formatLogTime(log.timestamp)}
+                  </span>
+                  <span className="flex-1 truncate">
+                    {log.message}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {logs.length > 5 && (
+          <div className="mt-2 text-center">
+            <button className="text-xs text-blue-600 hover:text-blue-800 underline">
+              View all logs in main panel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* AI Suggestions Section */}
