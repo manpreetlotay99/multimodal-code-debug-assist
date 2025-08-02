@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useAISuggestions } from '../contexts/AISuggestionsContext';
 
 type Language = 'javascript' | 'python';
 
@@ -6,13 +7,22 @@ interface CodeExample {
   [key: string]: string;
 }
 
-const CodeEditor: React.FC = () => {
+interface CodeEditorProps {
+  onCodeChange?: (code: string) => void;
+  applySuggestionRef?: React.MutableRefObject<((originalCode: string, suggestedCode: string) => void) | null>;
+}
+
+const CodeEditor: React.FC<CodeEditorProps> = ({ onCodeChange, applySuggestionRef }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('javascript');
   const [code, setCode] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [lineNumbers, setLineNumbers] = useState<number[]>([1]);
+  const { analyzeCode } = useAISuggestions();
+  
+  // Debounce timer for AI analysis
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const codeExamples: CodeExample = {
     javascript: `// Welcome to the Debug Assistant!
@@ -30,7 +40,7 @@ function fibonacci(n) {
 function isPrime(num) {
   if (num <= 1) return false;
   for (let i = 2; i <= Math.sqrt(num); i++) {
-    if (num % i === 0) return false;
+    if (num % i == 0) return false;
   }
   return true;
 }
@@ -83,6 +93,47 @@ print("Sum of 1-10:", sum(range(1, 11)))`
     const lines = code.split('\n');
     setLineNumbers(Array.from({ length: lines.length }, (_, i) => i + 1));
   }, [code]);
+
+  // Debounced AI analysis when code changes
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (code.trim().length > 10) { // Only analyze if there's substantial code
+        analyzeCode(code, selectedLanguage);
+      }
+    }, 2000); // 2 second delay
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [code, selectedLanguage, analyzeCode]);
+
+  // Notify parent component of code changes
+  useEffect(() => {
+    if (onCodeChange) {
+      onCodeChange(code);
+    }
+  }, [code, onCodeChange]);
+
+  // Function to apply AI suggestions to the code
+  const applySuggestionToCode = useCallback((originalCode: string, suggestedCode: string) => {
+    if (originalCode && suggestedCode) {
+      const newCode = code.replace(originalCode, suggestedCode);
+      setCode(newCode);
+    }
+  }, [code]);
+
+  // Register the apply suggestion function with the ref
+  useEffect(() => {
+    if (applySuggestionRef) {
+      applySuggestionRef.current = applySuggestionToCode;
+    }
+  }, [applySuggestionRef, applySuggestionToCode]);
 
   const handleLanguageChange = (language: Language) => {
     setSelectedLanguage(language);
@@ -304,6 +355,14 @@ print("Sum of 1-10:", sum(range(1, 11)))`
         </div>
         
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => analyzeCode(code, selectedLanguage)}
+            disabled={code.trim().length < 10}
+            className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors text-sm font-medium"
+            title="Analyze code with AI"
+          >
+            🤖 Analyze
+          </button>
           <button
             onClick={copyToClipboard}
             className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"

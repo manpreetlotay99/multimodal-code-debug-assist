@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import CodeEditor from './CodeEditor';
+import LogViewer from './LogViewer';
 
 interface MainContentProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  applySuggestionRef: React.MutableRefObject<((originalCode: string, suggestedCode: string) => void) | null>;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab }) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, applySuggestionRef }) => {
   const tabs = ['Code', 'Logs', 'Screenshots'];
 
   return (
@@ -34,13 +36,18 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab }) =>
       <div className="flex-1 p-6 overflow-hidden">
         {activeTab === 'Code' && (
           <div className="h-full">
-            <CodeEditor />
+            <CodeEditor 
+              onCodeChange={(code) => {
+                // Could be used for additional code change handling
+              }}
+              applySuggestionRef={applySuggestionRef}
+            />
           </div>
         )}
         
         {activeTab === 'Logs' && (
-          <div className="bg-gray-50 rounded-lg p-4 h-full overflow-auto">
-            <p className="text-gray-600">Logs content would go here...</p>
+          <div className="h-full">
+            <LogViewer />
           </div>
         )}
         
