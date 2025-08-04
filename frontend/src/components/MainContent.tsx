@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import CodeEditor from './CodeEditor';
 import LogViewer from './LogViewer';
+import MultimodalDebugAssistant from './MultimodalDebugAssistant';
 
 interface MainContentProps {
   activeTab: string;
@@ -9,7 +10,7 @@ interface MainContentProps {
 }
 
 const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, applySuggestionRef }) => {
-  const tabs = ['Code', 'Logs', 'Screenshots'];
+  const tabs = ['Code', 'Logs', 'AI Debug Assistant'];
 
   return (
     <div className="flex-1 flex flex-col bg-white">
@@ -51,11 +52,12 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, appl
           </div>
         )}
         
-        {activeTab === 'Screenshots' && (
-          <div className="bg-gray-50 rounded-lg p-4 h-full overflow-auto">
-            <p className="text-gray-600">Screenshots content would go here...</p>
+        {activeTab === 'AI Debug Assistant' && (
+          <div className="h-full">
+            <MultimodalDebugAssistant />
           </div>
         )}
+        
       </div>
     </div>
   );

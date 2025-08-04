@@ -1,0 +1,55 @@
+# FastAPI and web framework dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Async HTTP client
+aiohttp==3.9.1
+aiofiles==23.2.0
+
+# Data validation and serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Image processing
+Pillow==10.1.0
+
+# Environment and configuration
+python-dotenv==1.0.0
+
+# Date and time utilities
+python-dateutil==2.8.2
+
+# JSON handling (built-in, but listing for clarity)
+# json - built-in
+
+# UUID utilities (built-in)
+# uuid - built-in
+
+# Async utilities
+asyncio-throttle==1.0.2
+
+# Logging and monitoring (optional)
+structlog==23.2.0
+
+# Authentication and JWT
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# Development dependencies (uncomment for development)
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# black==23.11.0
+# flake8==6.1.0
+# mypy==1.7.1
+
+# Production dependencies (uncomment for production)
+# gunicorn==21.2.0
+# redis==5.0.1  # For caching/session management
+# sqlalchemy==2.0.23  # For database if needed
+# alembic==1.12.1  # For database migrations if needed

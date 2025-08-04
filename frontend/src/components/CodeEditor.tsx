@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAISuggestions } from '../contexts/AISuggestionsContext';
 import { useLogger } from '../contexts/LogContext';
+import saveService from '../services/saveService';
 
 type Language = 'javascript' | 'python';
 
@@ -18,6 +19,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onCodeChange, applySuggestionRe
   const [code, setCode] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [lineNumbers, setLineNumbers] = useState<number[]>([1]);
   const { analyzeCode } = useAISuggestions();
@@ -310,6 +312,49 @@ print("Sum of 1-10:", sum(range(1, 11)))`
     }
   };
 
+  const saveCode = async () => {
+    if (!code.trim()) {
+      logger.warning('Cannot save empty code', 'CodeEditor');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const title = prompt('Enter a title for this code snippet:');
+      if (!title) {
+        setIsSaving(false);
+        return;
+      }
+
+      const description = prompt('Enter a description (optional):') || undefined;
+
+      const result = await saveService.saveCode({
+        title,
+        description,
+        code_content: code,
+        language: selectedLanguage,
+        tags: [selectedLanguage, 'debug-session']
+      });
+
+      if (result.success) {
+        logger.success('Code saved successfully', 'CodeEditor', { 
+          savedId: result.item_id,
+          codeLength: code.length 
+        });
+        alert('Code saved successfully!');
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (err) {
+      logger.error('Failed to save code', 'CodeEditor', { 
+        error: err instanceof Error ? err.message : String(err) 
+      });
+      alert('Failed to save code. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Handle Tab for indentation
     if (e.key === 'Tab') {
@@ -405,6 +450,14 @@ print("Sum of 1-10:", sum(range(1, 11)))`
             title="Copy code to clipboard"
           >
             📋 Copy
+          </button>
+          <button
+            onClick={saveCode}
+            disabled={isSaving || !code.trim()}
+            className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors text-sm font-medium"
+            title="Save code to database"
+          >
+            {isSaving ? 'Saving...' : '💾 Save'}
           </button>
           <button
             onClick={runCode}

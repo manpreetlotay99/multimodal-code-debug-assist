@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLog, LogLevel, LogEntry } from '../contexts/LogContext';
+import saveService from '../services/saveService';
 
 const LogViewer: React.FC = () => {
   const { logs, clearLogs, getLogCounts } = useLog();
@@ -8,6 +9,7 @@ const LogViewer: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logCounts = getLogCounts();
 
@@ -113,6 +115,87 @@ const LogViewer: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const saveLogs = async () => {
+    if (filteredLogs.length === 0) {
+      alert('No logs to save');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const title = prompt('Enter a title for this log collection:');
+      if (!title) {
+        setIsSaving(false);
+        return;
+      }
+
+      const description = prompt('Enter a description (optional):') || undefined;
+
+      // Create a comprehensive log content string
+      const logContent = filteredLogs.map(log => {
+        let logLine = `[${log.timestamp.toISOString()}] ${log.level.toUpperCase()}`;
+        if (log.source) logLine += ` (${log.source})`;
+        logLine += `: ${log.message}`;
+        
+        if (log.details) {
+          logLine += `\nDetails: ${JSON.stringify(log.details, null, 2)}`;
+        }
+        
+        if (log.stackTrace) {
+          logLine += `\nStack Trace: ${log.stackTrace}`;
+        }
+        
+        return logLine;
+      }).join('\n\n');
+
+      // Determine the most common log level and source for metadata
+      const levelCounts = filteredLogs.reduce((acc, log) => {
+        acc[log.level] = (acc[log.level] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostCommonLevel = Object.entries(levelCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+      const sourceCounts = filteredLogs.reduce((acc, log) => {
+        if (log.source) acc[log.source] = (acc[log.source] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostCommonSource = Object.entries(sourceCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+      const result = await saveService.saveLogs({
+        title,
+        description,
+        log_content: logContent,
+        log_level: mostCommonLevel,
+        source: mostCommonSource,
+        log_metadata: {
+          total_logs: filteredLogs.length,
+          level_counts: levelCounts,
+          source_counts: sourceCounts,
+          time_range: {
+            start: filteredLogs[0]?.timestamp.toISOString(),
+            end: filteredLogs[filteredLogs.length - 1]?.timestamp.toISOString()
+          }
+        },
+        tags: ['debug-session', 'log-collection', ...(mostCommonLevel ? [mostCommonLevel] : [])]
+      });
+
+      if (result.success) {
+        alert('Logs saved successfully!');
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (err) {
+      console.error('Failed to save logs:', err);
+      alert('Failed to save logs. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200">
       {/* Header with controls */}
@@ -126,6 +209,13 @@ const LogViewer: React.FC = () => {
               className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               📤 Export
+            </button>
+            <button
+              onClick={saveLogs}
+              disabled={isSaving || filteredLogs.length === 0}
+              className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSaving ? 'Saving...' : '💾 Save'}
             </button>
             <button
               onClick={clearLogs}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 
 export type LogLevel = 'error' | 'warning' | 'info' | 'debug' | 'success';
 
@@ -145,7 +145,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children, maxLogs: ini
 export const useLogger = () => {
   const { addLog } = useLog();
   
-  return {
+  return useMemo(() => ({
     error: (message: string, source?: string, details?: any, stackTrace?: string) => 
       addLog('error', message, source, details, stackTrace),
     warning: (message: string, source?: string, details?: any) => 
@@ -156,5 +156,5 @@ export const useLogger = () => {
       addLog('debug', message, source, details),
     success: (message: string, source?: string, details?: any) => 
       addLog('success', message, source, details)
-  };
+  }), [addLog]);
 };

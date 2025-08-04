@@ -14,9 +14,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSidebarItem, setActiveSidebarIt
   const sidebarItems: SidebarItem[] = [
     { name: 'Code', icon: '📄' },
     { name: 'Logs', icon: '📋' },
-    { name: 'Screenshots', icon: '📷' },
-    { name: 'Suggestions', icon: '💡' },
-    { name: 'Profile', icon: '👤' }
+    { name: 'AI Debug Assistant', icon: '🚀' },
   ];
 
   return (
